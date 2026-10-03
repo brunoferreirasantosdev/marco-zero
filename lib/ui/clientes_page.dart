@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../data/local/banco.dart';
 import 'atualizacao_host.dart';
@@ -11,7 +12,9 @@ class _CabecalhoClientes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final estilo = Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700);
+    final estilo = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
@@ -89,7 +92,9 @@ class _ClientesPageState extends State<ClientesPage> {
           )
         : reunioes.first;
     if (!mounted) return;
-    final caminho = executar ? '/reuniao/${reuniao.id}' : '/reuniao/${reuniao.id}/etapas';
+    final caminho = executar
+        ? '/reuniao/${reuniao.id}'
+        : '/reuniao/${reuniao.id}/etapas';
     await context.push(caminho);
     _carregar();
   }
@@ -99,10 +104,18 @@ class _ClientesPageState extends State<ClientesPage> {
       context: context,
       builder: (contexto) => AlertDialog(
         title: const Text('Excluir cliente?'),
-        content: Text('${cliente.nome} e as reuniões deste cliente serão apagados.'),
+        content: Text(
+          '${cliente.nome} e as reuniões deste cliente serão apagados.',
+        ),
         actions: [
-          OutlinedButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(contexto, true), child: const Text('Excluir')),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(contexto, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            child: const Text('Excluir'),
+          ),
         ],
       ),
     );
@@ -111,7 +124,9 @@ class _ClientesPageState extends State<ClientesPage> {
     final aviso = await repo?.excluirCliente(cliente.id);
     if (!mounted) return;
     if (aviso != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(aviso)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(aviso)));
     }
     _carregar();
   }
@@ -133,7 +148,8 @@ class _ClientesPageState extends State<ClientesPage> {
     final termo = _busca.text.trim().toLowerCase();
     final visiveis = _clientes.where((c) {
       if (termo.isEmpty) return true;
-      return c.nome.toLowerCase().contains(termo) || c.email.toLowerCase().contains(termo);
+      return c.nome.toLowerCase().contains(termo) ||
+          c.email.toLowerCase().contains(termo);
     }).toList();
 
     return Scaffold(
@@ -167,101 +183,149 @@ class _ClientesPageState extends State<ClientesPage> {
           ),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1180),
-          child: Column(
-            children: [
-              if (sessao.avisoSync != null)
-                Container(
-                  width: double.infinity,
-                  color: aviso,
-                  padding: const EdgeInsets.all(12),
-                  child: Text(sessao.avisoSync!),
-                ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: TextField(
-                  controller: _busca,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    labelText: 'Buscar cliente',
+      body: Stack(
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1180),
+              child: Column(
+                children: [
+                  if (sessao.avisoSync != null)
+                    Container(
+                      width: double.infinity,
+                      color: aviso,
+                      padding: const EdgeInsets.all(12),
+                      child: Text(sessao.avisoSync!),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: TextField(
+                      controller: _busca,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search),
+                        labelText: 'Buscar cliente',
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              Expanded(
-                child: _carregando
-                    ? const Center(child: CircularProgressIndicator())
-                    : visiveis.isEmpty
-                    ? const Center(child: Text('Nenhum cliente ainda. Cadastre o primeiro.'))
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                        itemCount: visiveis.length + 1,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (context, indice) {
-                          if (indice == 0) return const _CabecalhoClientes();
-                          final cliente = visiveis[indice - 1];
-                          final contato = cliente.email.isEmpty ? cliente.telefone : cliente.email;
-                          return Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Expanded(
-                                    flex: 3,
-                                    child: InkWell(
-                                      onTap: () async {
-                                        await context.push('/clientes/${cliente.id}');
-                                        _carregar();
-                                      },
-                                      child: Text(cliente.nome, style: Theme.of(context).textTheme.titleMedium),
-                                    ),
-                                  ),
-                                  Expanded(flex: 3, child: Text(contato.isEmpty ? 'Sem contato' : contato)),
-                                  Expanded(
-                                    flex: 6,
-                                    child: Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      alignment: WrapAlignment.end,
-                                      children: [
-                                        FilledButton(
-                                          onPressed: () => _abrirReuniao(cliente.id, executar: true),
-                                          child: const Text('Executar'),
-                                        ),
-                                        OutlinedButton(
-                                          onPressed: () => _abrirReuniao(cliente.id, executar: false),
-                                          child: const Text('Editar preparação'),
-                                        ),
-                                        OutlinedButton(
-                                          onPressed: () async {
-                                            await context.push('/clientes/${cliente.id}/editar');
+                  Expanded(
+                    child: _carregando
+                        ? const Center(child: CircularProgressIndicator())
+                        : visiveis.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'Nenhum cliente ainda. Cadastre o primeiro.',
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                            itemCount: visiveis.length + 1,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, indice) {
+                              if (indice == 0)
+                                return const _CabecalhoClientes();
+                              final cliente = visiveis[indice - 1];
+                              final contato = cliente.email.isEmpty
+                                  ? cliente.telefone
+                                  : cliente.email;
+                              return Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Expanded(
+                                        flex: 3,
+                                        child: InkWell(
+                                          onTap: () async {
+                                            await context.push(
+                                              '/clientes/${cliente.id}',
+                                            );
                                             _carregar();
                                           },
-                                          child: const Text('Editar cliente'),
-                                        ),
-                                        OutlinedButton(
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: erro,
-                                            side: const BorderSide(color: erro),
+                                          child: Text(
+                                            cliente.nome,
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.titleMedium,
                                           ),
-                                          onPressed: () => _excluir(cliente),
-                                          child: const Text('Excluir'),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                      Expanded(
+                                        flex: 3,
+                                        child: Text(
+                                          contato.isEmpty
+                                              ? 'Sem contato'
+                                              : contato,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 6,
+                                        child: Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          alignment: WrapAlignment.end,
+                                          children: [
+                                            FilledButton(
+                                              onPressed: () => _abrirReuniao(
+                                                cliente.id,
+                                                executar: true,
+                                              ),
+                                              child: const Text('Executar'),
+                                            ),
+                                            OutlinedButton(
+                                              onPressed: () => _abrirReuniao(
+                                                cliente.id,
+                                                executar: false,
+                                              ),
+                                              child: const Text(
+                                                'Editar preparação',
+                                              ),
+                                            ),
+                                            OutlinedButton(
+                                              onPressed: () async {
+                                                await context.push(
+                                                  '/clientes/${cliente.id}/editar',
+                                                );
+                                                _carregar();
+                                              },
+                                              child: const Text(
+                                                'Editar cliente',
+                                              ),
+                                            ),
+                                            OutlinedButton(
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: erro,
+                                                side: const BorderSide(
+                                                  color: erro,
+                                                ),
+                                              ),
+                                              onPressed: () =>
+                                                  _excluir(cliente),
+                                              child: const Text('Excluir'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          const IgnorePointer(
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: _VersaoInstalada(),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
@@ -270,6 +334,44 @@ class _ClientesPageState extends State<ClientesPage> {
         },
         label: const Text('Cadastrar cliente'),
         icon: const Icon(Icons.person_add),
+      ),
+    );
+  }
+}
+
+class _VersaoInstalada extends StatefulWidget {
+  const _VersaoInstalada();
+
+  @override
+  State<_VersaoInstalada> createState() => _VersaoInstaladaState();
+}
+
+class _VersaoInstaladaState extends State<_VersaoInstalada> {
+  String? _versao;
+
+  @override
+  void initState() {
+    super.initState();
+    _ler();
+  }
+
+  Future<void> _ler() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted || info.version.isEmpty) return;
+      setState(() => _versao = info.version);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final versao = _versao;
+    if (versao == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Text(
+        'versão $versao',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: bege),
       ),
     );
   }
