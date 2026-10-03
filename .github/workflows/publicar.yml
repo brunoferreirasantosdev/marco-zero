@@ -33,6 +33,8 @@ jobs:
 
       - name: Compilar
         shell: pwsh
+        env:
+          CMAKE_POLICY_VERSION_MINIMUM: "3.5"
         run: |
           $feed = "https://github.com/${{ github.repository }}/releases/latest/download/latest.json"
           flutter build windows --release `
