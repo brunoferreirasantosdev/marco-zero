@@ -21,7 +21,7 @@ Future<void> baixarEAplicar(Uri url) async {
       arquivo.path,
       const [],
       mode: ProcessStartMode.detached,
-      environment: const {},
+      environment: Map<String, String>.from(Platform.environment),
     );
   } else {
     final script = File('${temporario.path}\\aplicar.ps1');
@@ -31,9 +31,15 @@ Future<void> baixarEAplicar(Uri url) async {
       destino: destino,
       executavel: executavel,
     ));
+    // O `start` do cmd solta o PowerShell do processo do app.
+    // Sem isso, encerrar o app mata a troca dos arquivos.
     await Process.start(
-      'powershell',
+      r'C:\Windows\System32\cmd.exe',
       [
+        '/c',
+        'start',
+        '',
+        r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe',
         '-NoProfile',
         '-ExecutionPolicy',
         'Bypass',
@@ -41,7 +47,7 @@ Future<void> baixarEAplicar(Uri url) async {
         script.path,
       ],
       mode: ProcessStartMode.detached,
-      environment: const {},
+      environment: Map<String, String>.from(Platform.environment),
     );
   }
   exit(0);
@@ -56,18 +62,23 @@ String _script({
   required String executavel,
 }) {
   return '''
+\$ErrorActionPreference = 'Stop'
 \$alvo = $pidProcesso
 while (Get-Process -Id \$alvo -ErrorAction SilentlyContinue) {
   Start-Sleep -Milliseconds 400
 }
 Start-Sleep -Seconds 1
-\$extraido = Join-Path \$env:TEMP ('mz-extraido-' + [guid]::NewGuid().ToString())
-New-Item -ItemType Directory -Path \$extraido | Out-Null
-Expand-Archive -LiteralPath ${_ps(zip)} -DestinationPath \$extraido -Force
-\$itens = @(Get-ChildItem -LiteralPath \$extraido)
-\$fonte = \$extraido
-if (\$itens.Count -eq 1 -and \$itens[0].PSIsContainer) { \$fonte = \$itens[0].FullName }
-Copy-Item -Path (Join-Path \$fonte '*') -Destination ${_ps(destino)} -Recurse -Force
+try {
+  \$extraido = Join-Path \$env:TEMP ('mz-extraido-' + [guid]::NewGuid().ToString())
+  New-Item -ItemType Directory -Path \$extraido | Out-Null
+  Expand-Archive -LiteralPath ${_ps(zip)} -DestinationPath \$extraido -Force
+  \$itens = @(Get-ChildItem -LiteralPath \$extraido)
+  \$fonte = \$extraido
+  if (\$itens.Count -eq 1 -and \$itens[0].PSIsContainer) { \$fonte = \$itens[0].FullName }
+  Copy-Item -Path (Join-Path \$fonte '*') -Destination ${_ps(destino)} -Recurse -Force
+} catch {
+  Set-Content -LiteralPath (Join-Path \$env:TEMP 'marco-zero-atualizacao-erro.txt') -Value (\$_ | Out-String)
+}
 Start-Process -FilePath ${_ps(executavel)}
 ''';
 }

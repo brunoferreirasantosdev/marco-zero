@@ -113,7 +113,10 @@ class _MarcoZeroAppState extends State<MarcoZeroApp> {
         title: 'Reunião Marco Zero',
         theme: temaMarcoZero(),
         routerConfig: _router,
-        builder: (context, child) => AtualizacaoHost(child: child ?? const SizedBox.shrink()),
+        builder: (context, child) => AtualizacaoHost(
+          navegador: _router.routerDelegate.navigatorKey,
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
     );
   }

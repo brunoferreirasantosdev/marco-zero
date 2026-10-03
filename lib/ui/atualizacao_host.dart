@@ -10,9 +10,14 @@ import '../atualizacao/feed.dart';
 import '../atualizacao/versao.dart';
 
 class AtualizacaoHost extends StatefulWidget {
-  const AtualizacaoHost({super.key, required this.child});
+  const AtualizacaoHost({
+    super.key,
+    required this.child,
+    required this.navegador,
+  });
 
   final Widget child;
+  final GlobalKey<NavigatorState> navegador;
 
   @override
   State<AtualizacaoHost> createState() => _AtualizacaoHostState();
@@ -23,7 +28,10 @@ class _AtualizacaoHostState extends State<AtualizacaoHost> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      verificarAtualizacao(context);
+      final contexto = widget.navegador.currentContext;
+      if (contexto != null && contexto.mounted) {
+        verificarAtualizacao(contexto);
+      }
     });
   }
 
@@ -60,6 +68,7 @@ Future<void> verificarAtualizacao(BuildContext context, {bool manual = false}) a
       if (manual) _avisar(context, 'Esta instalação já está na versão ${info.version}.');
       return;
     }
+    if (Navigator.maybeOf(context) == null) return;
     final aceitou = await showDialog<bool>(
       context: context,
       builder: (contexto) => AlertDialog(
