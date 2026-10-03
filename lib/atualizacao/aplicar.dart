@@ -17,7 +17,12 @@ Future<void> baixarEAplicar(Uri url) async {
   final executavel = Platform.resolvedExecutable;
   final destino = File(executavel).parent.path;
   if (arquivo.path.toLowerCase().endsWith('.exe')) {
-    await Process.start(arquivo.path, const [], mode: ProcessStartMode.detached);
+    await Process.start(
+      arquivo.path,
+      const [],
+      mode: ProcessStartMode.detached,
+      environment: const {},
+    );
   } else {
     final script = File('${temporario.path}\\aplicar.ps1');
     await script.writeAsString(_script(
@@ -36,6 +41,7 @@ Future<void> baixarEAplicar(Uri url) async {
         script.path,
       ],
       mode: ProcessStartMode.detached,
+      environment: const {},
     );
   }
   exit(0);
