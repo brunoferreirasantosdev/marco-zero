@@ -1,0 +1,1 @@
+{"firestore":{"rules":"firestore.rules"},"auth":{"providers":{"emailPassword":true}},"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"cea-reuniao-marco-zero","configurations":{"windows":"1:835039745152:web:f67ebdaef2611d2370c265"}}}}}}

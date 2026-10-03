@@ -1,0 +1,68 @@
+name: Publicar
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.6
+          channel: stable
+          cache: true
+
+      - name: Definir a versao
+        id: ver
+        shell: pwsh
+        run: |
+          $pub = Get-Content -Raw pubspec.yaml
+          if ($pub -notmatch "version:\s*(\d+)\.(\d+)\.(\d+)") {
+            throw "Versao ausente no pubspec.yaml"
+          }
+          $versao = "{0}.{1}.{2}" -f $Matches[1], $Matches[2], "${{ github.run_number }}"
+          "versao=$versao" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Compilar
+        shell: pwsh
+        run: |
+          $feed = "https://github.com/${{ github.repository }}/releases/latest/download/latest.json"
+          flutter build windows --release `
+            --build-name "${{ steps.ver.outputs.versao }}" `
+            --build-number "${{ github.run_number }}" `
+            --dart-define=FEED_ATUALIZACAO=$feed
+
+      - name: Empacotar
+        shell: pwsh
+        env:
+          NOTAS: ${{ github.event.head_commit.message }}
+        run: |
+          $versao = "${{ steps.ver.outputs.versao }}"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "dist\marco-zero-$versao.zip"
+          $url = "https://github.com/${{ github.repository }}/releases/download/v$versao/marco-zero-$versao.zip"
+          $notas = $env:NOTAS
+          if ([string]::IsNullOrWhiteSpace($notas)) { $notas = "Atualizacao $versao" }
+          @{ versao = $versao; url = $url; notas = $notas.Trim() } | ConvertTo-Json | Set-Content "dist\latest.json" -Encoding utf8
+          Set-Content "dist\notas.txt" -Value $notas.Trim() -Encoding utf8
+
+      - name: Publicar o release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $versao = "${{ steps.ver.outputs.versao }}"
+          gh release create "v$versao" `
+            "dist/marco-zero-$versao.zip" `
+            "dist/latest.json" `
+            --title $versao `
+            --notes-file "dist/notas.txt" `
+            --repo "${{ github.repository }}"
