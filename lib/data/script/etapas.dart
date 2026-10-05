@@ -12,9 +12,22 @@ bool textoDeFala(String id) =>
     id == chavePlanoConceitos ||
     id == chaveTextoProposta;
 
+const marcadorNomeCliente = '[ Nome do cliente ]';
+
 String aplicarNomeCliente(String texto, String nome) {
   final pessoa = nome.trim().isEmpty ? 'Nome do cliente' : nome.trim();
-  return texto.replaceAll('[ Nome do cliente ]', pessoa);
+  return texto
+      .replaceAll('[ Nome do Cliente ]', pessoa)
+      .replaceAll(marcadorNomeCliente, pessoa)
+      .replaceAll('Jaqueline', pessoa);
+}
+
+String restaurarMarcadorNome(String texto, String nome) {
+  var resultado = texto.replaceAll('[ Nome do Cliente ]', marcadorNomeCliente);
+  final pessoa = nome.trim();
+  if (pessoa.isNotEmpty)
+    resultado = resultado.replaceAll(pessoa, marcadorNomeCliente);
+  return resultado.replaceAll('Jaqueline', marcadorNomeCliente);
 }
 
 const chaveOrientacaoExpectativa = 'orientacao.expectativa';

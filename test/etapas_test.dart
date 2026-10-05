@@ -335,4 +335,19 @@ void main() {
     );
     expect(volta.tempos['acolhimento_perfil'], 12);
   });
+
+  test('o texto falado usa o nome cadastrado', () {
+    expect(
+      aplicarNomeCliente('juntos aqui, [ Nome do cliente ],', 'Marina'),
+      'juntos aqui, Marina,',
+    );
+    expect(
+      aplicarNomeCliente('juntos aqui, Jaqueline,', 'Marina'),
+      'juntos aqui, Marina,',
+    );
+    expect(
+      restaurarMarcadorNome('juntos aqui, Marina,', 'Marina'),
+      'juntos aqui, [ Nome do cliente ],',
+    );
+  });
 }

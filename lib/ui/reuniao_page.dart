@@ -661,7 +661,10 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     if (widget.preparando) {
       return [
         TextField(
-          controller: _rotulo(id, texto),
+          controller: _rotulo(
+            id,
+            textoDeFala(id) ? aplicarNomeCliente(texto, _nomeCliente) : texto,
+          ),
           minLines: 2,
           maxLines: textoDeFala(id) ? 18 : 8,
           style: cor == null ? null : TextStyle(color: cor),
@@ -678,7 +681,9 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     }
     final editado = _rotulos[id]?.text.trim() ?? '';
     final cru = editado.isEmpty ? texto : editado;
-    final visivel = textoDeFala(id) ? _comNome(cru) : cru;
+    final visivel = textoDeFala(id)
+        ? aplicarNomeCliente(cru, _nomeCliente)
+        : cru;
     if (caixa) return [_caixa(visivel)];
     final mostrado = numerado == null ? visivel : '$numerado. $visivel';
     final base = estilo ?? const TextStyle();
@@ -1056,7 +1061,10 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
         final padrao = textoPadraoBloco(id, perfil);
         final campo = _rotulos[id];
         if (padrao == null || campo == null) continue;
-        final seguinte = definirEtapa(textos, id, campo.text, padrao);
+        final valor = textoDeFala(id)
+            ? restaurarMarcadorNome(campo.text, _nomeCliente)
+            : campo.text;
+        final seguinte = definirEtapa(textos, id, valor, padrao);
         textos
           ..clear()
           ..addAll(seguinte);
@@ -1119,8 +1127,6 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
       ),
     );
   }
-
-  String _comNome(String texto) => aplicarNomeCliente(texto, _nomeCliente);
 
   String _semDuracao(String texto) {
     final limpo = texto
