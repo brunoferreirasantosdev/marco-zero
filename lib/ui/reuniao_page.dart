@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../data/ids.dart';
 import '../data/local/banco.dart';
@@ -902,29 +904,41 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     final repo = Escopo.of(context).repositorio;
     if (repo == null) return;
     final modelos = await repo.listarModelos();
+    final arquivos = await _arquivosExportados();
     if (!mounted) return;
-    if (modelos.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nenhum modelo salvo neste computador.')),
-      );
-      return;
-    }
-    final escolhido = await showDialog<Modelo>(
+    final escolhido = await showDialog<_EscolhaImportacao>(
       context: context,
       builder: (contexto) => AlertDialog(
         title: const Text('Importar modelo'),
         content: SizedBox(
           width: 420,
+          height: 360,
           child: ListView(
-            shrinkWrap: true,
             children: [
+              if (modelos.isEmpty && arquivos.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Text('Nenhum modelo salvo neste computador.'),
+                ),
               for (final modelo in modelos)
                 ListTile(
                   title: Text(modelo.nome),
                   subtitle: Text(
                     perfilPorNome(modelo.perfil)?.titulo ?? 'Sem perfil',
                   ),
-                  onTap: () => Navigator.pop(contexto, modelo),
+                  onTap: () => Navigator.pop(
+                    contexto,
+                    _EscolhaImportacao.modelo(modelo),
+                  ),
+                ),
+              for (final arquivo in arquivos)
+                ListTile(
+                  title: Text(_nomeVisivel(arquivo)),
+                  subtitle: const Text('Arquivo exportado'),
+                  onTap: () => Navigator.pop(
+                    contexto,
+                    _EscolhaImportacao.arquivo(arquivo.path),
+                  ),
                 ),
             ],
           ),
@@ -934,23 +948,101 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
             onPressed: () => Navigator.pop(contexto),
             child: const Text('Cancelar'),
           ),
+          FilledButton(
+            onPressed: () async {
+              final pasta = await _pastaDocumentos();
+              if (!contexto.mounted) return;
+              final arquivo = await openFile(
+                acceptedTypeGroups: const [
+                  XTypeGroup(label: 'Texto', extensions: ['txt']),
+                ],
+                initialDirectory: pasta?.path,
+                confirmButtonText: 'Importar',
+              );
+              if (!contexto.mounted || arquivo == null) return;
+              Navigator.pop(contexto, _EscolhaImportacao.arquivo(arquivo.path));
+            },
+            child: const Text('Escolher arquivo'),
+          ),
         ],
       ),
     );
     if (escolhido == null || !mounted) return;
+    if (escolhido.modelo != null) {
+      _aplicarMontagem(
+        lerMontagem(escolhido.modelo!.etapasJson),
+        perfilPorNome(escolhido.modelo!.perfil)?.id,
+      );
+      await _salvar(concluir: false);
+      return;
+    }
+    final caminho = escolhido.caminho;
+    if (caminho == null) return;
+    String conteudo;
+    try {
+      conteudo = await File(caminho).readAsString();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível ler o arquivo.')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    final exportada = lerReuniaoExportada(conteudo);
+    if (exportada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Esse arquivo não é uma exportação da reunião.'),
+        ),
+      );
+      return;
+    }
+    _aplicarMontagem(exportada.montagem, exportada.perfil?.id);
+    await _salvar(concluir: false);
+  }
+
+  void _aplicarMontagem(Montagem montagem, PerfilId? perfil) {
     setState(() {
       for (final campo in _rotulos.values) {
         campo.dispose();
       }
       _rotulos.clear();
-      _montagem = lerMontagem(escolhido.etapasJson);
-      _importancia = Map<String, String>.from(_montagem.importancia);
-      _tempos = Map<String, int>.from(_montagem.tempos);
-      _etapasJson = escolhido.etapasJson;
-      _perfil = perfilPorNome(escolhido.perfil)?.id ?? _perfil;
+      _montagem = montagem;
+      _importancia = Map<String, String>.from(montagem.importancia);
+      _tempos = Map<String, int>.from(montagem.tempos);
+      _etapasJson = gravarMontagem(montagem);
+      _perfil = perfil ?? _perfil;
       _sincronizarOrdem();
     });
-    await _salvar(concluir: false);
+  }
+
+  Future<List<File>> _arquivosExportados() async {
+    final pasta = await _pastaDocumentos();
+    if (pasta == null || !pasta.existsSync()) return [];
+    final arquivos = pasta.listSync().whereType<File>().where((arquivo) {
+      final nome = arquivo.path.split(Platform.pathSeparator).last;
+      return nomeDeExportacao(nome);
+    }).toList();
+    arquivos.sort(
+      (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()),
+    );
+    return arquivos;
+  }
+
+  Future<Directory?> _pastaDocumentos() async {
+    try {
+      return await getApplicationDocumentsDirectory();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _nomeVisivel(File arquivo) {
+    final nome = arquivo.path.split(Platform.pathSeparator).last;
+    return nome.toLowerCase().endsWith('.txt')
+        ? nome.substring(0, nome.length - 4)
+        : nome;
   }
 
   List<Widget> _botoesNovos() {
@@ -1213,4 +1305,13 @@ class _CardPerfil extends StatelessWidget {
       ),
     );
   }
+}
+
+class _EscolhaImportacao {
+  const _EscolhaImportacao.modelo(this.modelo) : caminho = null;
+
+  const _EscolhaImportacao.arquivo(this.caminho) : modelo = null;
+
+  final Modelo? modelo;
+  final String? caminho;
 }

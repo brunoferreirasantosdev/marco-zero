@@ -25,8 +25,37 @@ void main() {
       expect(texto, isNot(contains('999')));
       expect(texto, isNot(contains('[ Nome do cliente ]')));
       expect(nomeArquivoReuniao('Jaqueline'), 'Reunião Jaqueline.txt');
+      final lida = lerReuniaoExportada(texto);
+      expect(lida?.perfil?.id, PerfilId.organizacao);
+      expect(lida?.montagem.textos, isEmpty);
     },
   );
+
+  test('o txt exportado antigo, sem o pacote, vira modelo do perfil', () {
+    final texto = textoDaReuniao(
+      nomeCliente: 'João',
+      perfilId: PerfilId.organizacao,
+      montagem: Montagem(
+        textos: {
+          'organizacao.acolhimento.01': 'Pergunta ajustada para este modelo',
+        },
+        extras: const [],
+        ordem: const {},
+      ),
+      respostas: {chaveCampoExpectativa: 'Quero organizar'},
+    ).split('<<<modelo>>>').first;
+
+    final lida = lerReuniaoExportada(texto);
+
+    expect(lida?.perfil?.titulo, 'Organização orçamentária');
+    expect(
+      lida?.montagem.textos['organizacao.acolhimento.01'],
+      'Pergunta ajustada para este modelo',
+    );
+    expect(lida?.montagem.textos.containsKey(chaveLigamentoExpectativa), isFalse);
+    expect(nomeDeExportacao('Reunião João.txt'), isTrue);
+    expect(nomeDeExportacao('notas.txt'), isFalse);
+  });
 
   test('cada perfil tem o próprio plano e a proposta fica em 300', () {
     expect(planoDeAcao(PerfilId.endividado), contains('seis a doze'));
