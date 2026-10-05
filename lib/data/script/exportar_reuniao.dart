@@ -12,6 +12,12 @@ String nomeArquivoReuniao(String nomeCliente) {
   return 'Reunião $base.txt';
 }
 
+String nomeArquivoModelo(String titulo) {
+  final limpo = titulo.trim().replaceAll(RegExp(r'[<>:"/\\|?*]'), '').trim();
+  final base = limpo.isEmpty ? 'modelo' : limpo;
+  return 'Modelo $base.txt';
+}
+
 String textoDaReuniao({
   required String nomeCliente,
   required PerfilId? perfilId,
@@ -68,7 +74,9 @@ class ReuniaoExportada {
 }
 
 bool nomeDeExportacao(String nome) {
-  return nome.startsWith('Reunião ') && nome.toLowerCase().endsWith('.txt');
+  final arquivo = nome.toLowerCase();
+  if (!arquivo.endsWith('.txt')) return false;
+  return nome.startsWith('Modelo ') || nome.startsWith('Reunião ');
 }
 
 ReuniaoExportada? lerReuniaoExportada(String texto) {

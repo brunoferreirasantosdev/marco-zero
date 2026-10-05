@@ -25,6 +25,8 @@ void main() {
       expect(texto, isNot(contains('999')));
       expect(texto, isNot(contains('[ Nome do cliente ]')));
       expect(nomeArquivoReuniao('Jaqueline'), 'Reunião Jaqueline.txt');
+      expect(nomeArquivoModelo('Organização'), 'Modelo Organização.txt');
+      expect(nomeDeExportacao('Modelo Organização.txt'), isTrue);
       final lida = lerReuniaoExportada(texto);
       expect(lida?.perfil?.id, PerfilId.organizacao);
       expect(lida?.montagem.textos, isEmpty);

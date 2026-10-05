@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -8,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../data/ids.dart';
-import '../data/local/banco.dart';
 import '../data/respostas.dart';
 import '../data/preferencias.dart';
 import '../data/script/etapas.dart';
@@ -334,17 +332,13 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
                 if (widget.preparando) ...[
                   OutlinedButton(
                     onPressed: _salvando ? null : _salvarComoModelo,
-                    child: const Text('Salvar como modelo'),
+                    child: const Text('Salvar modelo'),
                   ),
                   OutlinedButton(
                     onPressed: _salvando ? null : _importarModelo,
                     child: const Text('Importar modelo'),
                   ),
                 ],
-                OutlinedButton(
-                  onPressed: _salvando ? null : _exportar,
-                  child: const Text('Exportar'),
-                ),
                 if (_passo < etapasRelogio.length)
                   FilledButton(
                     onPressed: _salvando ? null : _avancar,
@@ -818,56 +812,12 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     if (ok && mounted) context.pop();
   }
 
-  Future<void> _exportar() async {
-    final respostas = Map<String, String>.from(_respostas);
-    respostas[chaveCampoExpectativa] = _expectativa.text;
-    respostas[chaveCampoConceitos] = _notasPlano.text;
-    respostas[chaveCampoProposta] = _notasProposta.text;
-    for (final entrada in _campos.entries) {
-      respostas[entrada.key] = entrada.value.text;
-    }
-    final texto = textoDaReuniao(
-      nomeCliente: _nomeCliente,
-      perfilId: _perfil,
-      montagem: _coletarMontagem(),
-      respostas: respostas,
-    );
-    final nome = nomeArquivoReuniao(_nomeCliente);
-    final destino = await getSaveLocation(
-      suggestedName: nome,
-      acceptedTypeGroups: const [
-        XTypeGroup(label: 'Texto', extensions: ['txt']),
-      ],
-    );
-    if (destino == null || !mounted) return;
-    final caminho = destino.path.toLowerCase().endsWith('.txt')
-        ? destino.path
-        : '${destino.path}.txt';
-    try {
-      await XFile.fromData(
-        utf8.encode(texto),
-        mimeType: 'text/plain',
-        name: nome,
-      ).saveTo(caminho);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _aviso = 'Não foi possível exportar agora.');
-      return;
-    }
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Reunião exportada.')));
-  }
-
   Future<void> _salvarComoModelo() async {
-    final repo = Escopo.of(context).repositorio;
-    if (repo == null) return;
     final nome = TextEditingController();
     final confirmou = await showDialog<bool>(
       context: context,
       builder: (contexto) => AlertDialog(
-        title: const Text('Salvar como modelo'),
+        title: const Text('Salvar modelo'),
         content: TextField(
           controller: nome,
           decoration: const InputDecoration(labelText: 'Nome do modelo'),
@@ -888,25 +838,45 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     final titulo = nome.text.trim();
     nome.dispose();
     if (confirmou != true || titulo.isEmpty || !mounted) return;
-    final montagem = _coletarMontagem();
-    await repo.salvarModelo(
-      nome: titulo,
-      perfil: _perfil?.name,
-      etapasJson: gravarMontagem(montagem),
+    final pasta = await _pastaDocumentos();
+    if (pasta == null || !mounted) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível salvar o modelo em Documentos.'),
+        ),
+      );
+      return;
+    }
+    final arquivo = nomeArquivoModelo(titulo);
+    final caminho = '${pasta.path}${Platform.pathSeparator}$arquivo';
+    final texto = textoDaReuniao(
+      nomeCliente: '',
+      perfilId: _perfil,
+      montagem: _coletarMontagem(),
+      respostas: const {},
     );
+    try {
+      await File(caminho).writeAsString(texto);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível salvar o modelo em Documentos.'),
+        ),
+      );
+      return;
+    }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Modelo "$titulo" salvo neste computador.')),
+      SnackBar(content: Text('Modelo "$titulo" salvo em Documentos.')),
     );
   }
 
   Future<void> _importarModelo() async {
-    final repo = Escopo.of(context).repositorio;
-    if (repo == null) return;
-    final modelos = await repo.listarModelos();
     final arquivos = await _arquivosExportados();
     if (!mounted) return;
-    final escolhido = await showDialog<_EscolhaImportacao>(
+    final caminho = await showDialog<String>(
       context: context,
       builder: (contexto) => AlertDialog(
         title: const Text('Importar modelo'),
@@ -915,30 +885,16 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
           height: 360,
           child: ListView(
             children: [
-              if (modelos.isEmpty && arquivos.isEmpty)
+              if (arquivos.isEmpty)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 12),
-                  child: Text('Nenhum modelo salvo neste computador.'),
-                ),
-              for (final modelo in modelos)
-                ListTile(
-                  title: Text(modelo.nome),
-                  subtitle: Text(
-                    perfilPorNome(modelo.perfil)?.titulo ?? 'Sem perfil',
-                  ),
-                  onTap: () => Navigator.pop(
-                    contexto,
-                    _EscolhaImportacao.modelo(modelo),
-                  ),
+                  child: Text('Nenhum modelo salvo em Documentos.'),
                 ),
               for (final arquivo in arquivos)
                 ListTile(
                   title: Text(_nomeVisivel(arquivo)),
-                  subtitle: const Text('Arquivo exportado'),
-                  onTap: () => Navigator.pop(
-                    contexto,
-                    _EscolhaImportacao.arquivo(arquivo.path),
-                  ),
+                  subtitle: const Text('Documentos'),
+                  onTap: () => Navigator.pop(contexto, arquivo.path),
                 ),
             ],
           ),
@@ -960,24 +916,14 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
                 confirmButtonText: 'Importar',
               );
               if (!contexto.mounted || arquivo == null) return;
-              Navigator.pop(contexto, _EscolhaImportacao.arquivo(arquivo.path));
+              Navigator.pop(contexto, arquivo.path);
             },
             child: const Text('Escolher arquivo'),
           ),
         ],
       ),
     );
-    if (escolhido == null || !mounted) return;
-    if (escolhido.modelo != null) {
-      _aplicarMontagem(
-        lerMontagem(escolhido.modelo!.etapasJson),
-        perfilPorNome(escolhido.modelo!.perfil)?.id,
-      );
-      await _salvar(concluir: false);
-      return;
-    }
-    final caminho = escolhido.caminho;
-    if (caminho == null) return;
+    if (caminho == null || !mounted) return;
     String conteudo;
     try {
       conteudo = await File(caminho).readAsString();
@@ -993,7 +939,7 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     if (exportada == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Esse arquivo não é uma exportação da reunião.'),
+          content: Text('Esse arquivo não é um modelo.'),
         ),
       );
       return;
@@ -1307,11 +1253,3 @@ class _CardPerfil extends StatelessWidget {
   }
 }
 
-class _EscolhaImportacao {
-  const _EscolhaImportacao.modelo(this.modelo) : caminho = null;
-
-  const _EscolhaImportacao.arquivo(this.caminho) : modelo = null;
-
-  final Modelo? modelo;
-  final String? caminho;
-}
