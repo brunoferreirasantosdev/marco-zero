@@ -8,7 +8,9 @@ const chavePlanoConceitos = 'plano.conceitos';
 const chaveTextoProposta = 'proposta.texto';
 
 bool textoDeFala(String id) =>
-    id.startsWith('ligamento.') || id == chavePlanoConceitos || id == chaveTextoProposta;
+    id.startsWith('ligamento.') ||
+    id == chavePlanoConceitos ||
+    id == chaveTextoProposta;
 
 String aplicarNomeCliente(String texto, String nome) {
   final pessoa = nome.trim().isEmpty ? 'Nome do cliente' : nome.trim();
@@ -26,15 +28,25 @@ const importanciaBaixa = 'baixa';
 
 const etapasMontagem = [
   'expectativa',
-  'acolhimento',
-  'experiencia',
-  'especificas',
   'acolhimento_perfil',
   'experiencia_perfil',
   'especificas_perfil',
   'conceitos',
   'proposta',
 ];
+
+/// Etapas genéricas que o percurso antigo mostrava antes do perfil.
+const etapaAntigaDoPerfil = {
+  'acolhimento': 'acolhimento_perfil',
+  'experiencia': 'experiencia_perfil',
+  'especificas': 'especificas_perfil',
+};
+
+String etapaDaMontagem(String etapa) {
+  final mapeada = etapaAntigaDoPerfil[etapa] ?? etapa;
+  if (etapasMontagem.contains(mapeada)) return mapeada;
+  return 'acolhimento_perfil';
+}
 
 class EtapaRelogio {
   const EtapaRelogio(this.chave, this.nome, this.minutos, this.rotulo);
@@ -47,14 +59,21 @@ class EtapaRelogio {
 
 const etapasRelogio = <EtapaRelogio>[
   EtapaRelogio('expectativa', 'Apresentação e alinhamento', 3, '3 min'),
-  EtapaRelogio('acolhimento', 'Questões de acolhimento', 7, '7 min'),
-  EtapaRelogio('experiencia', 'Experiência do cliente', 5, '5 min'),
-  EtapaRelogio('especificas', 'Questões específicas', 5, '5 min'),
-  EtapaRelogio('perfil', 'Definição do perfil', 2, '2 min'),
-  EtapaRelogio('acolhimento_perfil', 'Acolhimento do perfil', 7, '7 min'),
-  EtapaRelogio('experiencia_perfil', 'Experiência do perfil', 5, '5 min'),
-  EtapaRelogio('especificas_perfil', 'Tema do perfil', 5, '5 min'),
-  EtapaRelogio('conceitos', 'Conceitos', 10, '10 min'),
+  EtapaRelogio('perfil', 'Escolha do perfil', 2, '2 min'),
+  EtapaRelogio('acolhimento_perfil', 'Questões de acolhimento', 7, '7 min'),
+  EtapaRelogio(
+    'experiencia_perfil',
+    'Questões sobre a experiência/conhecimento do cliente no tema',
+    5,
+    '5 min',
+  ),
+  EtapaRelogio(
+    'especificas_perfil',
+    'Questões específicas sobre o tema',
+    5,
+    '5 min',
+  ),
+  EtapaRelogio('conceitos', 'Conceito e plano', 10, '10 min'),
   EtapaRelogio('proposta', 'Proposta', 10, '5 a 10 min'),
 ];
 const chaveOrientacaoConceitos = 'orientacao.conceitos';
@@ -130,7 +149,10 @@ Montagem lerMontagem(String json) {
       final textosBrutos = data['textos'];
       return Montagem(
         textos: textosBrutos is Map
-            ? textosBrutos.map((chave, valor) => MapEntry(chave.toString(), valor?.toString() ?? ''))
+            ? textosBrutos.map(
+                (chave, valor) =>
+                    MapEntry(chave.toString(), valor?.toString() ?? ''),
+              )
             : {},
         extras: _lerExtras(data['extras']),
         ordem: _lerOrdem(data['ordem']),
@@ -158,7 +180,12 @@ String gravarMontagem(Montagem montagem) {
     'textos': montagem.textos,
     'extras': [
       for (final extra in montagem.extras)
-        {'id': extra.id, 'etapa': extra.etapa, 'tipo': extra.tipo, 'texto': extra.texto},
+        {
+          'id': extra.id,
+          'etapa': extra.etapa,
+          'tipo': extra.tipo,
+          'texto': extra.texto,
+        },
     ],
     'ordem': montagem.ordem,
     if (montagem.importancia.isNotEmpty) 'importancia': montagem.importancia,
@@ -172,7 +199,9 @@ Map<String, int> _lerTempos(Object? valor) {
   for (final entrada in valor.entries) {
     final chave = entrada.key.toString();
     if (!etapasMontagem.contains(chave)) continue;
-    final numero = entrada.value is num ? (entrada.value as num).toInt() : int.tryParse('${entrada.value}');
+    final numero = entrada.value is num
+        ? (entrada.value as num).toInt()
+        : int.tryParse('${entrada.value}');
     if (numero != null && numero > 0) mapa[chave] = numero;
   }
   return mapa;
@@ -207,13 +236,19 @@ Map<String, List<String>> padraoPorPerfil(PerfilRoteiro? perfil) {
   List<String> perguntas(EtapaPerguntas etapa) {
     if (perfil == null) return const [];
     return [
-      for (final pergunta in perfil.daEtapa(etapa)) ...[pergunta.id, '$prefixoCampo${pergunta.id}'],
+      for (final pergunta in perfil.daEtapa(etapa)) ...[
+        pergunta.id,
+        '$prefixoCampo${pergunta.id}',
+      ],
     ];
   }
 
   List<String> comuns(List<Pergunta> lista) {
     return [
-      for (final pergunta in lista) ...[pergunta.id, '$prefixoCampo${pergunta.id}'],
+      for (final pergunta in lista) ...[
+        pergunta.id,
+        '$prefixoCampo${pergunta.id}',
+      ],
     ];
   }
 
@@ -225,9 +260,6 @@ Map<String, List<String>> padraoPorPerfil(PerfilRoteiro? perfil) {
       chaveCampoExpectativa,
       chaveLigamentoExpectativa,
     ],
-    'acolhimento': [chaveOrientacaoAcolhimento, ...comuns(perguntasPadraoAcolhimento)],
-    'experiencia': [chaveOrientacaoExperiencia, ...comuns(perguntasPadraoExperiencia)],
-    'especificas': [chaveOrientacaoEspecificas, ...comuns(perguntasPadraoEspecificas)],
     'acolhimento_perfil': perguntas(EtapaPerguntas.acolhimento),
     'experiencia_perfil': perguntas(EtapaPerguntas.experiencia),
     'especificas_perfil': perguntas(EtapaPerguntas.especificas),
@@ -279,13 +311,19 @@ Map<String, List<String>> ordemEfetiva({
   final resultado = {for (final etapa in etapasMontagem) etapa: <String>[]};
 
   for (final etapa in etapasMontagem) {
-    final lista = salva[etapa];
-    if (lista == null) continue;
-    for (final id in lista) {
-      if (usados.contains(id)) continue;
-      if (!todosPadrao.contains(id) && !extrasPorId.containsKey(id)) continue;
-      resultado[etapa]!.add(id);
-      usados.add(id);
+    final listas = <List<String>?>[
+      salva[etapa],
+      for (final antiga in etapaAntigaDoPerfil.entries)
+        if (antiga.value == etapa) salva[antiga.key],
+    ];
+    for (final lista in listas) {
+      if (lista == null) continue;
+      for (final id in lista) {
+        if (usados.contains(id)) continue;
+        if (!todosPadrao.contains(id) && !extrasPorId.containsKey(id)) continue;
+        resultado[etapa]!.add(id);
+        usados.add(id);
+      }
     }
   }
 
@@ -299,7 +337,7 @@ Map<String, List<String>> ordemEfetiva({
 
   for (final extra in extras) {
     if (usados.contains(extra.id)) continue;
-    final etapa = etapasMontagem.contains(extra.etapa) ? extra.etapa : 'acolhimento';
+    final etapa = etapaDaMontagem(extra.etapa);
     resultado[etapa]!.add(extra.id);
     usados.add(extra.id);
   }
@@ -312,7 +350,10 @@ Map<String, List<String>> moverBloco(
   int indice,
   int direcao,
 ) {
-  final copia = {for (final nome in etapasMontagem) nome: List<String>.from(ordem[nome] ?? const <String>[])};
+  final copia = {
+    for (final nome in etapasMontagem)
+      nome: List<String>.from(ordem[nome] ?? const <String>[]),
+  };
   final lista = copia[etapa];
   if (lista == null || indice < 0 || indice >= lista.length) return copia;
   final destino = indice + direcao;
@@ -325,7 +366,9 @@ Map<String, List<String>> moverBloco(
   if (destino < 0 && posicao > 0) {
     final id = lista.removeAt(indice);
     copia[etapasMontagem[posicao - 1]]!.add(id);
-  } else if (destino >= lista.length && posicao >= 0 && posicao < etapasMontagem.length - 1) {
+  } else if (destino >= lista.length &&
+      posicao >= 0 &&
+      posicao < etapasMontagem.length - 1) {
     final id = lista.removeAt(indice);
     copia[etapasMontagem[posicao + 1]]!.insert(0, id);
   }

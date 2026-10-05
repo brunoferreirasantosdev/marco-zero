@@ -18,7 +18,12 @@ import 'reuniao_regras.dart';
 import 'tema.dart';
 
 class ReuniaoPage extends StatefulWidget {
-  const ReuniaoPage({super.key, this.reuniaoId, this.clienteId, this.preparando = false});
+  const ReuniaoPage({
+    super.key,
+    this.reuniaoId,
+    this.clienteId,
+    this.preparando = false,
+  });
 
   final String? reuniaoId;
   final String? clienteId;
@@ -39,7 +44,10 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
   String? _clienteId;
   String _nomeCliente = '';
   PerfilId? _perfil;
-  final _decorridos = List<Duration>.filled(etapasRelogio.length, Duration.zero);
+  final _decorridos = List<Duration>.filled(
+    etapasRelogio.length,
+    Duration.zero,
+  );
   final _correndo = List<bool>.filled(etapasRelogio.length, false);
   var _tempos = <String, int>{};
   Timer? _relogio;
@@ -65,7 +73,9 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     final repo = Escopo.of(context).repositorio;
     if (repo == null) return;
     _reuniaoId = widget.reuniaoId;
-    final clienteInicial = widget.clienteId == null ? null : await repo.obterCliente(widget.clienteId!);
+    final clienteInicial = widget.clienteId == null
+        ? null
+        : await repo.obterCliente(widget.clienteId!);
     if (clienteInicial != null) {
       _clienteId = clienteInicial.id;
       _nomeCliente = clienteInicial.nome;
@@ -214,7 +224,9 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
             onPressed: () => context.pop(),
           ),
         ),
-        body: const Center(child: Text('Cadastre o cliente antes de iniciar a reunião.')),
+        body: const Center(
+          child: Text('Cadastre o cliente antes de iniciar a reunião.'),
+        ),
       );
     }
     final sugestao = sugerirPerfil(
@@ -241,7 +253,9 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
                     if (reuniao != null && mounted) {
                       setState(() {
                         _montagem = lerMontagem(reuniao.etapasJson);
-                        _importancia = Map<String, String>.from(_montagem.importancia);
+                        _importancia = Map<String, String>.from(
+                          _montagem.importancia,
+                        );
                         _tempos = Map<String, int>.from(_montagem.tempos);
                         _etapasJson = reuniao.etapasJson;
                         _sincronizarOrdem();
@@ -260,8 +274,11 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
       ),
       body: Column(
         children: [
-          LinearProgressIndicator(value: (_passo + 1) / (etapasRelogio.length + 1)),
-          if (!widget.preparando && _passo < etapasRelogio.length) _relogioEtapa(),
+          LinearProgressIndicator(
+            value: (_passo + 1) / (etapasRelogio.length + 1),
+          ),
+          if (!widget.preparando && _passo < etapasRelogio.length)
+            _relogioEtapa(),
           Expanded(
             child: Center(
               child: ConstrainedBox(
@@ -272,7 +289,12 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
                     if (_aviso != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: Text(_aviso!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                        child: Text(
+                          _aviso!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
                       ),
                     ..._conteudo(sugestao),
                   ],
@@ -299,14 +321,28 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
                   ),
                 if (widget.preparando && _etapaDoPasso() != null)
                   OutlinedButton(
-                    onPressed: () => setState(() => _posicionando = !_posicionando),
-                    child: Text(_posicionando ? 'Concluir posição' : 'Editar posicionamento'),
+                    onPressed: () =>
+                        setState(() => _posicionando = !_posicionando),
+                    child: Text(
+                      _posicionando
+                          ? 'Concluir posição'
+                          : 'Editar posicionamento',
+                    ),
                   ),
                 if (widget.preparando) ...[
-                  OutlinedButton(onPressed: _salvando ? null : _salvarComoModelo, child: const Text('Salvar como modelo')),
-                  OutlinedButton(onPressed: _salvando ? null : _importarModelo, child: const Text('Importar modelo')),
+                  OutlinedButton(
+                    onPressed: _salvando ? null : _salvarComoModelo,
+                    child: const Text('Salvar como modelo'),
+                  ),
+                  OutlinedButton(
+                    onPressed: _salvando ? null : _importarModelo,
+                    child: const Text('Importar modelo'),
+                  ),
                 ],
-                OutlinedButton(onPressed: _salvando ? null : _exportar, child: const Text('Exportar')),
+                OutlinedButton(
+                  onPressed: _salvando ? null : _exportar,
+                  child: const Text('Exportar'),
+                ),
                 if (_passo < etapasRelogio.length)
                   FilledButton(
                     onPressed: _salvando ? null : _avancar,
@@ -315,7 +351,9 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
                 if (widget.preparando)
                   FilledButton(
                     onPressed: _salvando ? null : _finalizarPreparacao,
-                    child: Text(_salvando ? 'Salvando...' : 'Salvar preparação'),
+                    child: Text(
+                      _salvando ? 'Salvando...' : 'Salvar preparação',
+                    ),
                   ),
                 if (!widget.preparando && _passo == etapasRelogio.length)
                   FilledButton(
@@ -362,9 +400,10 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     final chave = etapasRelogio[_passo].chave;
     final perfil = _perfil == null ? null : perfilPorId(_perfil!);
     final titulo = switch (chave) {
-      'conceitos' => 'Conceitos e plano de ação',
-      'proposta' => 'Proposta comercial',
-      'acolhimento_perfil' || 'experiencia_perfil' || 'especificas_perfil' => perfil?.titulo ?? 'Confirme o perfil na etapa Tema',
+      'conceitos' => 'Conceito e plano',
+      'proposta' => 'Proposta',
+      'acolhimento_perfil' || 'experiencia_perfil' || 'especificas_perfil' =>
+        perfil?.titulo ?? 'Confirme o perfil na etapa de escolha do perfil',
       _ => null,
     };
     return [
@@ -433,7 +472,12 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
         final rotulo = _rotulos[extra.id]?.text ?? extra.texto;
         if (extra.tipo == 'campo') {
           miolo.addAll(
-            _blocoTexto(extra.id, rotulo.isEmpty ? 'Campo' : rotulo, caixa: false, estilo: estiloPergunta),
+            _blocoTexto(
+              extra.id,
+              rotulo.isEmpty ? 'Campo' : rotulo,
+              caixa: false,
+              estilo: estiloPergunta,
+            ),
           );
           miolo.add(const SizedBox(height: 6));
           miolo.add(_campoResposta(_campo(extra.id)));
@@ -457,7 +501,13 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
         }
         miolo.add(_campoResposta(campo, minLines: 5, maxLines: 10));
       } else if (id.startsWith(prefixoCampo)) {
-        miolo.add(_campoResposta(_campo(id.substring(prefixoCampo.length)), minLines: 2, maxLines: 5));
+        miolo.add(
+          _campoResposta(
+            _campo(id.substring(prefixoCampo.length)),
+            minLines: 2,
+            maxLines: 5,
+          ),
+        );
       } else {
         final padrao = textoPadraoBloco(id, perfil);
         if (padrao == null) continue;
@@ -466,9 +516,18 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
         if (id.startsWith('orientacao.')) {
           miolo.addAll(_blocoTexto(id, texto, caixa: true));
         } else if (textoDeFala(id)) {
-          miolo.addAll(_blocoTexto(id, texto, caixa: false, estilo: Theme.of(context).textTheme.bodyLarge));
+          miolo.addAll(
+            _blocoTexto(
+              id,
+              texto,
+              caixa: false,
+              estilo: Theme.of(context).textTheme.bodyLarge,
+            ),
+          );
         } else {
-          miolo.addAll(_blocoTexto(id, texto, caixa: false, estilo: estiloPergunta));
+          miolo.addAll(
+            _blocoTexto(id, texto, caixa: false, estilo: estiloPergunta),
+          );
         }
       }
       itens.add(_envolve(etapa, i, id, miolo, extra: extra != null));
@@ -486,7 +545,10 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     );
     final extras = {for (final extra in _montagem.extras) extra.id: extra};
     final linhas = <Widget>[
-      Text(perfil?.titulo ?? 'Sem perfil', style: Theme.of(context).textTheme.headlineMedium),
+      Text(
+        perfil?.titulo ?? 'Sem perfil',
+        style: Theme.of(context).textTheme.headlineMedium,
+      ),
       const SizedBox(height: 8),
       Text(_nomeCliente),
       const SizedBox(height: 12),
@@ -496,7 +558,11 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
         if (id == chaveCampoExpectativa) {
           linhas.add(
             Text(
-              textoEtapa(_montagem.textos, chavePerguntaExpectativa, perguntaChave),
+              textoEtapa(
+                _montagem.textos,
+                chavePerguntaExpectativa,
+                perguntaChave,
+              ),
               style: Theme.of(context).textTheme.titleMedium,
             ),
           );
@@ -505,29 +571,52 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
           continue;
         }
         if (id == chaveCampoConceitos) {
-          linhas.add(const Text('Plano', style: TextStyle(fontWeight: FontWeight.w600)));
-          linhas.add(Text(_notasPlano.text.isEmpty ? 'Sem anotação.' : _notasPlano.text));
+          linhas.add(
+            const Text('Plano', style: TextStyle(fontWeight: FontWeight.w600)),
+          );
+          linhas.add(
+            Text(_notasPlano.text.isEmpty ? 'Sem anotação.' : _notasPlano.text),
+          );
           linhas.add(const SizedBox(height: 10));
           continue;
         }
         if (id == chaveCampoProposta) {
-          linhas.add(const Text('Proposta', style: TextStyle(fontWeight: FontWeight.w600)));
-          linhas.add(Text(_notasProposta.text.isEmpty ? 'Sem anotação.' : _notasProposta.text));
+          linhas.add(
+            const Text(
+              'Proposta',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          );
+          linhas.add(
+            Text(
+              _notasProposta.text.isEmpty
+                  ? 'Sem anotação.'
+                  : _notasProposta.text,
+            ),
+          );
           linhas.add(const SizedBox(height: 10));
           continue;
         }
         final extra = extras[id];
         if (extra != null && extra.tipo == 'campo') {
-          final resposta = (_campos[extra.id]?.text ?? _respostas[extra.id] ?? '').trim();
+          final resposta =
+              (_campos[extra.id]?.text ?? _respostas[extra.id] ?? '').trim();
           if (resposta.isEmpty) continue;
-          linhas.add(Text(extra.texto, style: const TextStyle(fontWeight: FontWeight.w600)));
+          linhas.add(
+            Text(
+              extra.texto,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          );
           linhas.add(Text(resposta));
           linhas.add(const SizedBox(height: 10));
           continue;
         }
-        if (!id.startsWith(prefixoCampo) || id == chaveCampoExpectativa) continue;
+        if (!id.startsWith(prefixoCampo) || id == chaveCampoExpectativa)
+          continue;
         final perguntaId = id.substring(prefixoCampo.length);
-        final resposta = (_campos[perguntaId]?.text ?? _respostas[perguntaId] ?? '').trim();
+        final resposta =
+            (_campos[perguntaId]?.text ?? _respostas[perguntaId] ?? '').trim();
         if (resposta.isEmpty) continue;
         final padrao = textoPadraoBloco(perguntaId, perfil) ?? 'Campo';
         linhas.add(
@@ -577,7 +666,11 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
           maxLines: textoDeFala(id) ? 18 : 8,
           style: cor == null ? null : TextStyle(color: cor),
           decoration: InputDecoration(
-            labelText: caixa ? 'Orientação' : textoDeFala(id) ? 'Texto' : 'Pergunta',
+            labelText: caixa
+                ? 'Orientação'
+                : textoDeFala(id)
+                ? 'Texto'
+                : 'Pergunta',
           ),
         ),
         if (!caixa && !textoDeFala(id)) _seletorImportancia(id),
@@ -596,14 +689,25 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
             ? estilo
             : base.copyWith(
                 color: cor,
-                fontWeight: _importancia[id] == importanciaAlta ? FontWeight.w700 : base.fontWeight,
+                fontWeight: _importancia[id] == importanciaAlta
+                    ? FontWeight.w700
+                    : base.fontWeight,
               ),
       ),
     ];
   }
 
-  Widget _envolve(String etapa, int indice, String id, List<Widget> miolo, {required bool extra}) {
-    final corpo = Column(crossAxisAlignment: CrossAxisAlignment.start, children: miolo);
+  Widget _envolve(
+    String etapa,
+    int indice,
+    String id,
+    List<Widget> miolo, {
+    required bool extra,
+  }) {
+    final corpo = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: miolo,
+    );
     if (!widget.preparando || !_posicionando) return corpo;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -675,18 +779,31 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
           const SizedBox(width: 8),
           Text(
             atual == null ? 'Importância' : rotuloImportancia(atual),
-            style: TextStyle(color: _corNivel(atual) ?? const Color(0xFF595855)),
+            style: TextStyle(
+              color: _corNivel(atual) ?? const Color(0xFF595855),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _campoResposta(TextEditingController controller, {int minLines = 2, int maxLines = 6}) {
+  Widget _campoResposta(
+    TextEditingController controller, {
+    int minLines = 2,
+    int maxLines = 6,
+  }) {
     if (widget.preparando) {
-      return const Text('Campo de resposta', style: TextStyle(color: Color(0xFF595855)));
+      return const Text(
+        'Campo de resposta',
+        style: TextStyle(color: Color(0xFF595855)),
+      );
     }
-    return TextField(controller: controller, minLines: minLines, maxLines: maxLines);
+    return TextField(
+      controller: controller,
+      minLines: minLines,
+      maxLines: maxLines,
+    );
   }
 
   Future<void> _finalizarPreparacao() async {
@@ -716,16 +833,24 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
       ],
     );
     if (destino == null || !mounted) return;
-    final caminho = destino.path.toLowerCase().endsWith('.txt') ? destino.path : '${destino.path}.txt';
+    final caminho = destino.path.toLowerCase().endsWith('.txt')
+        ? destino.path
+        : '${destino.path}.txt';
     try {
-      await XFile.fromData(utf8.encode(texto), mimeType: 'text/plain', name: nome).saveTo(caminho);
+      await XFile.fromData(
+        utf8.encode(texto),
+        mimeType: 'text/plain',
+        name: nome,
+      ).saveTo(caminho);
     } catch (_) {
       if (!mounted) return;
       setState(() => _aviso = 'Não foi possível exportar agora.');
       return;
     }
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reunião exportada.')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Reunião exportada.')));
   }
 
   Future<void> _salvarComoModelo() async {
@@ -742,8 +867,14 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
           autofocus: true,
         ),
         actions: [
-          OutlinedButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(contexto, true), child: const Text('Salvar modelo')),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(contexto, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            child: const Text('Salvar modelo'),
+          ),
         ],
       ),
     );
@@ -751,9 +882,15 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     nome.dispose();
     if (confirmou != true || titulo.isEmpty || !mounted) return;
     final montagem = _coletarMontagem();
-    await repo.salvarModelo(nome: titulo, perfil: _perfil?.name, etapasJson: gravarMontagem(montagem));
+    await repo.salvarModelo(
+      nome: titulo,
+      perfil: _perfil?.name,
+      etapasJson: gravarMontagem(montagem),
+    );
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Modelo "$titulo" salvo neste computador.')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Modelo "$titulo" salvo neste computador.')),
+    );
   }
 
   Future<void> _importarModelo() async {
@@ -762,7 +899,9 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     final modelos = await repo.listarModelos();
     if (!mounted) return;
     if (modelos.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nenhum modelo salvo neste computador.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nenhum modelo salvo neste computador.')),
+      );
       return;
     }
     final escolhido = await showDialog<Modelo>(
@@ -777,13 +916,20 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
               for (final modelo in modelos)
                 ListTile(
                   title: Text(modelo.nome),
-                  subtitle: Text(perfilPorNome(modelo.perfil)?.titulo ?? 'Sem perfil'),
+                  subtitle: Text(
+                    perfilPorNome(modelo.perfil)?.titulo ?? 'Sem perfil',
+                  ),
                   onTap: () => Navigator.pop(contexto, modelo),
                 ),
             ],
           ),
         ),
-        actions: [OutlinedButton(onPressed: () => Navigator.pop(contexto), child: const Text('Cancelar'))],
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(contexto),
+            child: const Text('Cancelar'),
+          ),
+        ],
       ),
     );
     if (escolhido == null || !mounted) return;
@@ -832,10 +978,16 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     setState(() {
       _montagem = Montagem(
         textos: _montagem.textos,
-        extras: [..._montagem.extras, ExtraBloco(id: id, etapa: etapa, tipo: tipo, texto: texto)],
+        extras: [
+          ..._montagem.extras,
+          ExtraBloco(id: id, etapa: etapa, tipo: tipo, texto: texto),
+        ],
         ordem: _ordem,
       );
-      _ordem = {for (final nome in etapasMontagem) nome: List<String>.from(_ordem[nome] ?? const <String>[])};
+      _ordem = {
+        for (final nome in etapasMontagem)
+          nome: List<String>.from(_ordem[nome] ?? const <String>[]),
+      };
       _ordem[etapa]!.add(id);
       _rotulo(id, texto);
     });
@@ -852,12 +1004,18 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
     setState(() {
       _montagem = Montagem(
         textos: _montagem.textos,
-        extras: [for (final extra in _montagem.extras) if (extra.id != id) extra],
+        extras: [
+          for (final extra in _montagem.extras)
+            if (extra.id != id) extra,
+        ],
         ordem: _ordem,
       );
       _ordem = {
         for (final nome in etapasMontagem)
-          nome: [for (final item in _ordem[nome] ?? const <String>[]) if (item != id) item],
+          nome: [
+            for (final item in _ordem[nome] ?? const <String>[])
+              if (item != id) item,
+          ],
       };
       _rotulos.remove(id)?.dispose();
       _campos.remove(id)?.dispose();
@@ -872,10 +1030,21 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
       for (final id in _ordem[etapa] ?? const <String>[]) {
         final extra = porId[id];
         if (extra == null) continue;
-        atualizados.add(ExtraBloco(id: extra.id, etapa: etapa, tipo: extra.tipo, texto: _rotulos[extra.id]?.text ?? extra.texto));
+        atualizados.add(
+          ExtraBloco(
+            id: extra.id,
+            etapa: etapa,
+            tipo: extra.tipo,
+            texto: _rotulos[extra.id]?.text ?? extra.texto,
+          ),
+        );
       }
     }
-    _montagem = Montagem(textos: _montagem.textos, extras: atualizados, ordem: _ordem);
+    _montagem = Montagem(
+      textos: _montagem.textos,
+      extras: atualizados,
+      ordem: _ordem,
+    );
   }
 
   Montagem _coletarMontagem() {
@@ -917,7 +1086,9 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
       ordem: _ordem,
       importancia: {
         for (final entrada in _importancia.entries)
-          if (entrada.value == importanciaAlta || entrada.value == importanciaMedia || entrada.value == importanciaBaixa)
+          if (entrada.value == importanciaAlta ||
+              entrada.value == importanciaMedia ||
+              entrada.value == importanciaBaixa)
             entrada.key: entrada.value,
       },
       tempos: Map<String, int>.from(_tempos),
@@ -952,7 +1123,9 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
   String _comNome(String texto) => aplicarNomeCliente(texto, _nomeCliente);
 
   String _semDuracao(String texto) {
-    final limpo = texto.replaceFirst(RegExp(r'^Cerca de .+?minutos\.\s*'), '').trim();
+    final limpo = texto
+        .replaceFirst(RegExp(r'^Cerca de .+?minutos\.\s*'), '')
+        .trim();
     return limpo.isEmpty ? texto.trim() : limpo;
   }
 
@@ -964,7 +1137,13 @@ class _ReuniaoPageState extends State<ReuniaoPage> {
         color: carvao,
         borderRadius: BorderRadius.circular(15),
       ),
-      child: Text(texto, style: const TextStyle(color: textoNoEscuro, fontWeight: FontWeight.w300)),
+      child: Text(
+        texto,
+        style: const TextStyle(
+          color: textoNoEscuro,
+          fontWeight: FontWeight.w300,
+        ),
+      ),
     );
   }
 }
@@ -1000,14 +1179,27 @@ class _CardPerfil extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selecionado || sugerido ? cor : bege, width: selecionado ? 2 : 1),
+          border: Border.all(
+            color: selecionado || sugerido ? cor : bege,
+            width: selecionado ? 2 : 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(perfil.titulo, style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text(
+              perfil.titulo,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             if (sugerido)
-              const Text('Sugestão', style: TextStyle(color: verde, fontSize: 12, fontWeight: FontWeight.w700)),
+              const Text(
+                'Sugestão',
+                style: TextStyle(
+                  color: verde,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             const SizedBox(height: 6),
             Text(perfil.sinais, style: const TextStyle(fontSize: 13)),
           ],

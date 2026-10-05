@@ -6,7 +6,7 @@ import 'package:marco_zero/data/reuniao_repository.dart';
 void main() {
   test('sem ajuste salvo vale o tempo e a cor padrão', () {
     final prefs = lerPreferencias('{}');
-    expect(prefs.minutosDe('acolhimento'), 7);
+    expect(prefs.minutosDe('acolhimento_perfil'), 7);
     expect(prefs.corAlta, Preferencias.corAltaPadrao);
     expect(Preferencias.minutosEfetivos(daReuniao: null, daPreferencia: 9), 9);
     expect(Preferencias.minutosEfetivos(daReuniao: 4, daPreferencia: 9), 4);
